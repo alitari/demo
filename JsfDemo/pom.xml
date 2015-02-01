@@ -21,7 +21,7 @@
 		</snapshotRepository>
 	</distributionManagement>
 
-	
+
 
 	<dependencies>
 
@@ -73,6 +73,26 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat6-maven-plugin</artifactId>
+				<version>2.2</version>
+				<configuration>
+					<url>http://192.168.0.24:8888/manager</url>
+					<path>/${project.build.finalName}</path>
+				</configuration>
+
+			</plugin>
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.2</version>
+				<configuration>
+					<url>http://192.168.0.24:8888/manager</url>
+					<path>/${project.build.finalName}</path>
 				</configuration>
 			</plugin>
 		</plugins>
