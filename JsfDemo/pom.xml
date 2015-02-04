@@ -2,11 +2,22 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.alexkrieg</groupId>
-	<artifactId>JavaServerFaces</artifactId>
+	<artifactId>javaserverfaces</artifactId>
 	<packaging>war</packaging>
 	<version>1.0-SNAPSHOT</version>
 	<name>JavaServerFaces Maven Webapp</name>
 	<url>http://maven.apache.org</url>
+
+
+	<properties>
+		<server.version>6.0</server.version>
+		<server.name>tomcat</server.name>
+		<server.repository>tutum</server.repository>
+		<image>${server.repository}/${server.name}:${server.version}</image>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+	</properties>
+
 
 	<distributionManagement>
 		<repository>
@@ -20,7 +31,6 @@
 			<url>http://192.168.0.24:8081/content/repositories/snapshots</url>
 		</snapshotRepository>
 	</distributionManagement>
-
 
 
 	<dependencies>
@@ -63,7 +73,7 @@
 	</dependencies>
 
 	<build>
-		<finalName>JavaServerFaces</finalName>
+		<finalName>javaserverfaces</finalName>
 
 		<plugins>
 			<plugin>
@@ -77,24 +87,100 @@
 			</plugin>
 
 			<plugin>
-				<groupId>org.apache.tomcat.maven</groupId>
-				<artifactId>tomcat6-maven-plugin</artifactId>
-				<version>2.2</version>
+				<groupId>org.jolokia</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.11.0</version>
 				<configuration>
-					<url>http://192.168.0.24:8888/manager</url>
-					<path>/${project.build.finalName}</path>
+					<logDate>default</logDate>
+					<autoPull>true</autoPull>
+					<dockerHost>http://192.168.0.24:2375</dockerHost>
+					<images>
+						<!-- Docker Image to use -->
+						<image>
+							<!-- App-Server Image -->
+							<alias>server</alias>
+							<name>jsf</name>
+							<build>
+							  <from>${image}</from>
+								<!-- The assembly descriptor prepares the "/maven" directory in the 
+									temporary data container which will be made available to the specified container. 
+									The startup script in the container (jolokia/tomcat-7.0) should check for 
+									files in this directory and use them for deploying them. I.e. this image 
+									has a script 'deploy-and-run.sh' which exactly does this. -->
+								<assembly>
+								    <basedir>/tomcat/webapps</basedir>
+									<descriptor>docker-assembly.xml</descriptor>
+								</assembly>
+							</build>
+
+							<run>
+								<env>
+									<TOMCAT_PASS>acid</TOMCAT_PASS>
+								</env>
+								<ports>
+									<!-- Port mappings: Container internal port (which must be exposed) 
+										will be dynamically mapped and this (random) port will be assigned to the 
+										maven variable ${jolokia.port}. Multiple port mappings can be specified here -->
+									<port>8888:8080</port>
+								</ports>
+								<wait>
+									<!-- The plugin waits until this URL is reachable via HTTP ... -->
+									<log>Server startup</log>
+									<url>http://localhost:8888</url>
+									<time>10000</time>
+									<shutdown>500</shutdown>
+								</wait>
+								<log>
+									<enabled>true</enabled>
+									<color>red</color>
+								</log>
+							</run>
+						</image>
+
+					</images>
 				</configuration>
+				<!-- Connect this plugin to the maven lifecycle around the integration-test 
+					phase. I.e. start the container in pre-integration-test and stop it in post-integration-test. -->
+				<executions>
+					<execution>
+						<id>start</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>build</goal>
+							<goal>start</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>stop</id>
+						<phase>post-integration-test</phase>
+						<goals>
+							<goal>stop</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- fails-safe-plugin should be used instead of surefire so that the 
+				container gets stopped even when the tests fail -->
+			<plugin>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.17</version>
+				<executions>
+					<execution>
+						<id>integration-test</id>
+						<goals>
+							<goal>integration-test</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>verify</id>
+						<goals>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
 
 			</plugin>
-			<plugin>
-				<groupId>org.apache.tomcat.maven</groupId>
-				<artifactId>tomcat7-maven-plugin</artifactId>
-				<version>2.2</version>
-				<configuration>
-					<url>http://192.168.0.24:8888/manager</url>
-					<path>/${project.build.finalName}</path>
-				</configuration>
-			</plugin>
+
 		</plugins>
 	</build>
 </project>
