@@ -30,14 +30,18 @@
 	</licenses>
 
 	<properties>
-        <!-- docker -->
+		<!-- docker -->
 		<dockerHost>192.168.0.24</dockerHost>
 		<dockerPort>2375</dockerPort>
 		<wsport>8888</wsport>
-		<server.repository>jboss</server.repository>
-		<server.name>wildfly</server.name>
-		<server.version>latest</server.version>
-		<image>${server.repository}/${server.name}:${server.version}</image>
+
+		<imageFrom>jboss/wildfly:latest</imageFrom>
+
+		<image.registryHost></image.registryHost>
+		<image.namespace>alitari/</image.namespace>
+		<image.repository>simple-webservice</image.repository>
+		<image.version>3.0</image.version>
+
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 
@@ -148,11 +152,6 @@
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.jboss.arquillian.junit</groupId>
-			<artifactId>arquillian-junit-container</artifactId>
-			<scope>test</scope>
-		</dependency>
 
 	</dependencies>
 
@@ -197,14 +196,11 @@
 						<image>
 							<!-- App-Server Image -->
 							<alias>server</alias>
-							<name>simplewebservice</name>
+							<name>${image.registryHost}${image.namespace}${image.repository}:${image.version}</name>
 							<build>
-								<from>${image}</from>
+								<from>${imageFrom}</from>
 								<!-- The assembly descriptor prepares the "/maven" directory in the 
-									temporary data container which will be made available to the specified container. 
-									The startup script in the container (jolokia/tomcat-7.0) should check for 
-									files in this directory and use them for deploying them. I.e. this image 
-									has a script 'deploy-and-run.sh' which exactly does this. -->
+									temporary data container which will be made available to the specified container. -->
 								<assembly>
 									<basedir>/opt/jboss/wildfly/standalone/deployments</basedir>
 									<descriptor>docker-assembly.xml</descriptor>
@@ -253,6 +249,15 @@
 						<phase>post-integration-test</phase>
 						<goals>
 							<goal>stop</goal>
+							<goal>remove</goal>
+
+						</goals>
+					</execution>
+					<execution>
+						<id>push</id>
+						<phase>deploy</phase>
+						<goals>
+							<goal>push</goal>
 						</goals>
 					</execution>
 				</executions>
@@ -274,6 +279,7 @@
 						<goals>
 							<goal>verify</goal>
 						</goals>
+						
 					</execution>
 				</executions>
 
@@ -288,6 +294,7 @@
 					<junitReport>true</junitReport>
 					<exportwAll>true</exportwAll>
 					<printReport>false</printReport>
+					<testFailIgnore>true</testFailIgnore>
 					<globalProperties>
 						<value>wshost=${dockerHost}</value>
 						<value>wsport=${wsport}</value>
@@ -307,147 +314,7 @@
 		</plugins>
 	</build>
 
-	<profiles>
-		<profile>
-			<!-- The default profile skips all tests, though you can tune it to run 
-				just unit tests based on a custom pattern -->
-			<!-- Seperate profiles are provided for running all tests -->
-			<id>default</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-war-plugin</artifactId>
-						<version>${version.war.plugin}</version>
-					</plugin>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${version.surefire.plugin}</version>
-						<configuration>
-							<skip>true</skip>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
 
-		<profile>
-			<!-- An optional testing profile that executes tests in your WildFly instance 
-				using Arquillian -->
-			<!-- This profile will start a new WildFly instance, and execute the test, 
-				shutting it down when done -->
-			<!-- Run with: mvn clean test -Parq-wildfly-managed -->
-			<id>arq-wildfly-managed</id>
-			<dependencies>
-				<dependency>
-					<groupId>org.wildfly</groupId>
-					<artifactId>wildfly-arquillian-container-managed</artifactId>
-					<version>${version.arquillian.container}</version>
-					<scope>test</scope>
-				</dependency>
-			</dependencies>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${version.surefire.plugin}</version>
-						<configuration>
-							<excludes>
-								<exclude>**/ClientTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<!-- An optional Arquillian testing profile that executes tests in a remote 
-				WildFly instance -->
-			<!-- Run with: mvn clean test -Parq-wildfly-remote -->
-			<id>arq-wildfly-remote</id>
-			<dependencies>
-				<dependency>
-					<groupId>org.wildfly</groupId>
-					<artifactId>wildfly-arquillian-container-remote</artifactId>
-					<version>${version.arquillian.container}</version>
-					<scope>test</scope>
-				</dependency>
-			</dependencies>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${version.surefire.plugin}</version>
-						<configuration>
-							<excludes>
-								<exclude>**/ClientTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<!-- An optional testing profile that executes tests in a remote WildFly 
-				instance where the application has already been deployed -->
-			<!-- Run with: mvn clean test -Pjbossas-remote -->
-			<id>jbossas-remote</id>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${version.surefire.plugin}</version>
-						<configuration>
-							<systemProperties>
-								<property>
-									<name>serverUrl</name>
-									<value>${remote.server.url}</value>
-								</property>
-							</systemProperties>
-							<excludes>
-								<exclude>**/ClientArqTest.java</exclude>
-							</excludes>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-
-		<profile>
-			<!-- When built in OpenShift the 'openshift' profile will be used when 
-				invoking mvn. -->
-			<!-- Use this profile for any OpenShift specific customization your app 
-				will need. -->
-			<!-- By default that is to put the resulting archive into the 'deployments' 
-				folder. -->
-			<!-- http://maven.apache.org/guides/mini/guide-building-for-different-environments.html -->
-			<id>openshift</id>
-			<build>
-				<plugins>
-					<plugin>
-						<artifactId>maven-war-plugin</artifactId>
-						<version>${version.war.plugin}</version>
-						<configuration>
-							<outputDirectory>deployments</outputDirectory>
-							<warName>${project.artifactId}</warName>
-							<failOnMissingWebXml>false</failOnMissingWebXml>
-						</configuration>
-					</plugin>
-					<plugin>
-						<artifactId>maven-surefire-plugin</artifactId>
-						<version>${version.surefire.plugin}</version>
-						<configuration>
-							<skip>true</skip>
-						</configuration>
-					</plugin>
-				</plugins>
-			</build>
-		</profile>
-	</profiles>
 
 </project>
 

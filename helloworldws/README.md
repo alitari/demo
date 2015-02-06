@@ -1,8 +1,11 @@
 helloworld-ws: Hello World JAX-WS Web Service
 ==================================================
 Author: Alexander Krieg
+
 Level: Beginner
+
 Technologies: JAX-WS, Arquillian, Docker, Soapui
+
 Summary: Deployment of a basic JAX-WS Web service bundled in a WAR archive and running Integration tests
 Target Project: WildFly
 Source: <https://github.com/wildfly/quickstart/>
@@ -12,7 +15,7 @@ What is it?
 
 1. This example demonstrates the use of *JAX-WS* in *JBoss WildFly* as a simple Hello World application.
 2. This example demonstrates the use of Docker for application deployment 
-3. This example demonstrates the use of SOAPUI 
+3. This example demonstrates the use of SOAPUI for integration tests
 
 
 System requirements
